@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>test</title>
+    <url>/2020/05/02/test/</url>
+    <content><![CDATA[<h1 id="look-at-me"><a href="#look-at-me" class="headerlink" title="look at me"></a>look at me</h1><p>This is flag: w3lcome_t0_My_BLog</p>
+]]></content>
+  </entry>
+  <entry>
     <title>mp3的private_key隐写</title>
     <url>/2020/05/04/MP3%E7%9A%84private-key%E9%9A%90%E5%86%99/</url>
-    <content><![CDATA[<h2 id="De1CTF-mc-easybgm"><a href="#De1CTF-mc-easybgm" class="headerlink" title="De1CTF     mc_easybgm"></a>De1CTF     mc_easybgm</h2><p>首先从网上扒下来了bgm.mp3<br>简单分析一下可知，是一首轻音乐上面盖了一层Deja vu<br>拿到一个mp3文件，第一个想到的肯定是mp3stego，但是缺一个密码</p>
+    <content><![CDATA[<h2 id="De1CTF-mc-easybgm"><a href="#De1CTF-mc-easybgm" class="headerlink" title="De1CTF     mc_easybgm"></a>De1CTF     mc_easybgm</h2><p>这源自De1CTF的一道题，简单谈一下解题思路</p>
+<a id="more"></a>
+<p>首先从网上扒下来了bgm.mp3<br>简单分析一下可知，是一首轻音乐上面盖了一层Deja vu<br>拿到一个mp3文件，第一个想到的肯定是mp3stego，但是缺一个密码</p>
 <p>分析了一下扒下来的bg.jpg文件，并没有什么东西<br>然后师傅们又抓到了一个png文件，是服务器的头像<br>用zsteg分析发现有PGP Seret Key -<br><img src="/images/W1-PGP.png" alt=""><br>由于不熟PGP，还以为这个东西肯定有用，就提出来了，但其实没啥用，zsteg的分析是错的，PGP文件格式长这样<br><img src="/images/W1-PGP1.png" alt=""><br>后来尝试听歌识曲找到了轻音乐的名字moogcity2，以这个字符串作为密码，mp3stego出了一个txt文件，但是不可读，是一堆乱码，用CyberChef进行了xor爆破和编码爆破，各种分析后无果<br><img src="/images/W1-txt.png" alt=""></p>
 <h2 id="private-key隐写"><a href="#private-key隐写" class="headerlink" title="private_key隐写"></a>private_key隐写</h2><p>其实分析的东西错了，应该分析bgm.mp3的，被easy stego的提示误导了<br>首先看一下mp3的官方文档</p>
 <blockquote>
@@ -23,12 +31,6 @@
         <tag>misc</tag>
         <tag>音频</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>test</title>
-    <url>/2020/05/02/test/</url>
-    <content><![CDATA[<h1 id="look-at-me"><a href="#look-at-me" class="headerlink" title="look at me"></a>look at me</h1><p>This is flag: w3lcome_t0_My_BLog</p>
-]]></content>
   </entry>
   <entry>
     <title>Hello World</title>
