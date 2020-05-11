@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Dalock</title>
+  
+  <subtitle>本来无一物，何处惹尘埃</subtitle>
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2020-05-04T17:00:19.992Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>Dalock</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>mp3的private_key隐写</title>
+    <link href="http://yoursite.com/2020/05/04/MP3%E7%9A%84private-key%E9%9A%90%E5%86%99/"/>
+    <id>http://yoursite.com/2020/05/04/MP3%E7%9A%84private-key%E9%9A%90%E5%86%99/</id>
+    <published>2020-05-04T13:19:17.000Z</published>
+    <updated>2020-05-04T17:00:19.992Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="De1CTF-mc-easybgm"><a href="#De1CTF-mc-easybgm" class="headerlink" title="De1CTF     mc_easybgm"></a>De1CTF     mc_easybgm</h2><p>这源自De1CTF的一道题，简单谈一下解题思路</p><a id="more"></a><p>首先从网上扒下来了bgm.mp3<br>简单分析一下可知，是一首轻音乐上面盖了一层Deja vu<br>拿到一个mp3文件，第一个想到的肯定是mp3stego，但是缺一个密码</p><p>分析了一下扒下来的bg.jpg文件，并没有什么东西<br>然后师傅们又抓到了一个png文件，是服务器的头像<br>用zsteg分析发现有PGP Seret Key -<br><img src="/images/W1-PGP.png" alt=""><br>由于不熟PGP，还以为这个东西肯定有用，就提出来了，但其实没啥用，zsteg的分析是错的，PGP文件格式长这样<br><img src="/images/W1-PGP1.png" alt=""><br>后来尝试听歌识曲找到了轻音乐的名字moogcity2，以这个字符串作为密码，mp3stego出了一个txt文件，但是不可读，是一堆乱码，用CyberChef进行了xor爆破和编码爆破，各种分析后无果<br><img src="/images/W1-txt.png" alt=""></p><h2 id="private-key隐写"><a href="#private-key隐写" class="headerlink" title="private_key隐写"></a>private_key隐写</h2><p>其实分析的东西错了，应该分析bgm.mp3的，被easy stego的提示误导了<br>首先看一下mp3的官方文档</p><blockquote><p><a href="https://www.mp3-tech.org/programmer/frame_header.html?tdsourcetag=s_pctim_aiomsg" target="_blank" rel="noopener">https://www.mp3-tech.org/programmer/frame_header.html?tdsourcetag=s_pctim_aiomsg</a></p></blockquote><p>在MPEG音频文件中，没有主header，因为MPEG音频文件是由一系列称为帧的较小部分组成的。每个帧都是一个具有自己的标头和音频信息的数据块。<br><img src="/images/W1-Pr1.png" alt=""></p><p>各帧帧头中都有1bit的private_key，可以用来放信息，对mp3文件本身<br>没什么影响，我们写脚本将其导出</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">a = open(<span class="string">"bgm.mp3"</span>,<span class="string">'rb'</span>)</span><br><span class="line">b = a.read().encode(<span class="string">"hex"</span>)</span><br><span class="line"></span><br><span class="line">sum = <span class="string">""</span></span><br><span class="line">cnt = <span class="number">10403</span>             <span class="comment">#第一个帧开始的位置</span></span><br><span class="line">cnt1 = <span class="number">417</span><span class="comment">#一帧的大小</span></span><br><span class="line">cnt2 = <span class="number">128</span><span class="comment">#最后一帧之后内容的大小</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">2</span>*cnt+<span class="number">1</span>,len(b)-cnt2*<span class="number">2</span>,cnt1*<span class="number">2</span>):<span class="comment">#读取每帧的private_key值</span></span><br><span class="line">sum += b[i+<span class="number">4</span>]</span><br><span class="line"></span><br><span class="line"><span class="keyword">print</span> len(sum)</span><br><span class="line">sum1 = <span class="string">""</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>,len(sum),<span class="number">8</span>):<span class="comment">#有效private_key位数</span></span><br><span class="line"><span class="keyword">if</span> sum[i:i+<span class="number">8</span>] == <span class="string">"00000000"</span>:</span><br><span class="line"><span class="keyword">break</span></span><br><span class="line">sum1 += sum[i:i+<span class="number">8</span>]</span><br><span class="line"></span><br><span class="line"><span class="keyword">print</span> sum1</span><br><span class="line">sum1 = sum1[::<span class="number">-1</span>]</span><br><span class="line">sum2 = <span class="string">""</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>,len(sum1),<span class="number">8</span>):<span class="comment">#转为字符输出</span></span><br><span class="line">sum2 += chr(int(sum1[i:i+<span class="number">8</span>],<span class="number">2</span>))</span><br><span class="line"><span class="keyword">print</span> sum2</span><br></pre></td></tr></table></figure><p>运行之后就可以得到flag<br>由于对音频相关模块不熟，这里只是一个简单的脚本，利用010editor的mp3模块可以直接分析得到cnt,cnt1,cnt2的值，也就很方便求解<br>之后视情况更新知识点和新脚本</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;De1CTF-mc-easybgm&quot;&gt;&lt;a href=&quot;#De1CTF-mc-easybgm&quot; class=&quot;headerlink&quot; title=&quot;De1CTF     mc_easybgm&quot;&gt;&lt;/a&gt;De1CTF     mc_easybgm&lt;/h2&gt;&lt;p&gt;这源自De1CTF的一道题，简单谈一下解题思路&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="ctf" scheme="http://yoursite.com/categories/ctf/"/>
+    
+    
+      <category term="ctf" scheme="http://yoursite.com/tags/ctf/"/>
+    
+      <category term="misc" scheme="http://yoursite.com/tags/misc/"/>
+    
+      <category term="音频" scheme="http://yoursite.com/tags/%E9%9F%B3%E9%A2%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>test</title>
+    <link href="http://yoursite.com/2020/05/02/test/"/>
+    <id>http://yoursite.com/2020/05/02/test/</id>
+    <published>2020-05-02T00:10:07.000Z</published>
+    <updated>2020-05-02T00:13:16.976Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="look-at-me"><a href="#look-at-me" class="headerlink" title="look at me"></a>look at me</h1><p>This is flag: w3lcome_t0_My_BLog</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h1 id=&quot;look-at-me&quot;&gt;&lt;a href=&quot;#look-at-me&quot; class=&quot;headerlink&quot; title=&quot;look at me&quot;&gt;&lt;/a&gt;look at me&lt;/h1&gt;&lt;p&gt;This is flag: w3lcome_t0_My_BLog&lt;/p&gt;
+
+      
+    
+    </summary>
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://yoursite.com/2020/05/02/hello-world/"/>
+    <id>http://yoursite.com/2020/05/02/hello-world/</id>
+    <published>2020-05-01T23:42:01.257Z</published>
+    <updated>2020-05-02T00:55:19.131Z</updated>
+    
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><a id="more"></a><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;
+    
+    </summary>
+    
+    
+    
+  </entry>
+  
+</feed>
